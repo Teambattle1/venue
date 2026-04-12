@@ -62,6 +62,16 @@ export interface VenueSpace {
   created_at: string
   map_letter?: string | null
   instructor_info?: string | null
+  has_screen?: boolean
+  placement?: string | null
+}
+
+export interface SpaceImage {
+  id: string
+  space_id: string
+  image_url: string
+  sort_order: number
+  created_at: string
 }
 
 export const ACTIVITIES = [
