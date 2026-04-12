@@ -18,6 +18,7 @@ export interface Location {
   website?: string
   instagram?: string
   facebook?: string
+  linkedin?: string
   contacts: Contact[]
   crm_status: string
   venue_code?: string
@@ -27,6 +28,22 @@ export interface Location {
   teknisk_service_phone?: string | null
   hidden?: boolean
   venue_type?: 'inde' | 'ude' | 'begge'
+  last_contacted_at?: string | null
+  last_contacted_note?: string | null
+  last_visited_at?: string | null
+  last_visited_note?: string | null
+  notes?: string | null
+  dist_fredericia_km?: number | null
+  dist_frederikssund_km?: number | null
+  dist_fredericia_min?: number | null
+  dist_frederikssund_min?: number | null
+  is_bureau?: boolean
+  is_lead?: boolean
+  ef_venue_category?: string[]
+  logo_url?: string | null
+  venue_note?: string | null
+  portal_fields?: Record<string, boolean> | null
+  adgang_note?: string | null
 }
 
 export interface VenueSpace {
@@ -43,6 +60,8 @@ export interface VenueSpace {
   suitable_activities?: string[]
   sort_order: number
   created_at: string
+  map_letter?: string | null
+  instructor_info?: string | null
 }
 
 export const ACTIVITIES = [

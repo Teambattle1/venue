@@ -80,8 +80,18 @@ export default function OutdoorMap({
 
     const markers: L.Marker[] = []
     spaces.filter(s => s.lat && s.lon).forEach(s => {
-      const m = L.marker([s.lat!, s.lon!]).addTo(map)
-      m.bindPopup(`<b>${s.name}</b>${s.note ? `<br/>${s.note}` : ''}`)
+      const letter = (s as any).map_letter
+      const color = s.type === 'ude' ? '#2563eb' : '#d4640a'
+      const icon = letter
+        ? L.divIcon({
+            className: '',
+            html: `<div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;font-family:Outfit,sans-serif;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${letter}</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          })
+        : undefined
+      const m = icon ? L.marker([s.lat!, s.lon!], { icon }).addTo(map) : L.marker([s.lat!, s.lon!]).addTo(map)
+      m.bindPopup(`<b>${letter ? letter + ' - ' : ''}${s.name}</b>${s.note ? `<br/>${s.note}` : ''}`)
       markers.push(m)
     })
 

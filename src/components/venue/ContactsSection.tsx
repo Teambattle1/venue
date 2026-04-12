@@ -63,7 +63,7 @@ export default function ContactsSection({ locationId, contacts, onSave }: Props)
       </div>
 
       {contacts.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {contacts.map((c) => (
             editingId === c.id ? (
               <ContactForm
@@ -103,35 +103,45 @@ export default function ContactsSection({ locationId, contacts, onSave }: Props)
 }
 
 function ContactCard({ contact: c, onEdit }: { contact: Contact; onEdit: () => void }) {
+  const [open, setOpen] = useState(false)
+
   return (
     <div style={{
-      background: 'var(--surface2)', borderRadius: 'var(--r)', padding: '12px 16px',
-      position: 'relative',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-        <p style={{ fontWeight: 500, fontFamily: 'Outfit, sans-serif', fontSize: 14 }}>
-          {c.name || '(intet navn)'}
-        </p>
-        <button onClick={onEdit} style={{
-          background: 'none', border: 'none', color: 'var(--accent)',
-          fontSize: 12, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', padding: 0,
-          flexShrink: 0,
-        }}>
-          Rediger
-        </button>
+      background: 'var(--surface2)', borderRadius: 'var(--r)', padding: '8px 12px',
+      cursor: 'pointer',
+    }} onClick={() => setOpen(!open)}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <p style={{ fontWeight: 500, fontFamily: 'Outfit, sans-serif', fontSize: 13, whiteSpace: 'nowrap' }}>
+            {c.name || '(intet navn)'}
+          </p>
+          {c.title && <span style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif' }}>{c.title}</span>}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {c.mobile && (
+            <a href={`tel:${c.mobile}`} onClick={e => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: 'Outfit, sans-serif' }}>
+              {c.mobile}
+            </a>
+          )}
+          <span style={{ fontSize: 10, color: 'var(--muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>&#9654;</span>
+        </div>
       </div>
-      {c.title && <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif' }}>{c.title}</p>}
-      {c.mobile && (
-        <a href={`tel:${c.mobile}`} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontFamily: 'Outfit, sans-serif', display: 'block', marginTop: 4 }}>
-          {c.mobile}
-        </a>
+      {open && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+          {c.email && (
+            <a href={`mailto:${c.email}`} onClick={e => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: 'Outfit, sans-serif', display: 'block', marginBottom: 4 }}>
+              {c.email}
+            </a>
+          )}
+          {c.notes && <p style={{ fontSize: 11, color: 'var(--text)', fontFamily: 'Outfit, sans-serif', whiteSpace: 'pre-wrap', marginBottom: 4 }}>{c.notes}</p>}
+          <button onClick={e => { e.stopPropagation(); onEdit() }} style={{
+            background: 'none', border: 'none', color: 'var(--accent)',
+            fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', padding: 0,
+          }}>
+            Rediger
+          </button>
+        </div>
       )}
-      {c.email && (
-        <a href={`mailto:${c.email}`} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontFamily: 'Outfit, sans-serif', display: 'block', marginTop: 2 }}>
-          {c.email}
-        </a>
-      )}
-      {c.notes && <p style={{ fontSize: 11, color: 'var(--accent)', marginTop: 4, fontFamily: 'Outfit, sans-serif' }}>{c.notes}</p>}
     </div>
   )
 }
@@ -202,7 +212,7 @@ function ContactForm({ initial, saving, onSave, onCancel, onDelete }: {
         </div>
         <div>
           <label style={labelStyle}>Note</label>
-          <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Evt. note..." style={inputStyle} />
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Evt. note..." rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', marginTop: 4 }}>
           <div>

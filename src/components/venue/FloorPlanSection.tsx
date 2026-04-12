@@ -11,10 +11,14 @@ interface Props {
   venueLon?: number | null
   venueName?: string
   venueType?: 'inde' | 'ude' | 'begge'
+  adgangNote?: string | null
+  onAdgangSave?: (note: string | null) => void
 }
 
-export default function FloorPlanSection({ locationId, venueLat, venueLon, venueName, venueType = 'begge' }: Props) {
+export default function FloorPlanSection({ locationId, venueLat, venueLon, venueName, venueType = 'begge', adgangNote, onAdgangSave }: Props) {
   const [spaces, setSpaces] = useState<VenueSpace[]>([])
+  const [editingAdgang, setEditingAdgang] = useState(false)
+  const [adgangVal, setAdgangVal] = useState(adgangNote || '')
   const showInde = venueType === 'inde' || venueType === 'begge'
   const showUde = venueType === 'ude' || venueType === 'begge'
   const defaultTab = showInde ? 'inde' : 'ude'
@@ -77,6 +81,59 @@ export default function FloorPlanSection({ locationId, venueLat, venueLon, venue
             </button>
           )}
         </div>
+      </div>
+
+      {/* Adgang note */}
+      <div style={{
+        background: 'var(--surface2)', borderRadius: 'var(--r)', padding: '10px 14px',
+        marginBottom: 16, border: '1px solid var(--border)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
+            Adgang
+          </span>
+          {!editingAdgang && (
+            <button onClick={() => setEditingAdgang(true)} style={{
+              background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer',
+              fontFamily: 'Outfit, sans-serif', fontSize: 11, padding: 0,
+            }}>
+              Rediger
+            </button>
+          )}
+        </div>
+        {editingAdgang ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <textarea
+              value={adgangVal} onChange={e => setAdgangVal(e.target.value)}
+              placeholder="Beskriv adgangsforhold, parkering, indgang mv..."
+              rows={3}
+              style={{
+                padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
+                background: 'var(--surface)', fontFamily: 'Outfit, sans-serif', fontSize: 12,
+                color: 'var(--text)', outline: 'none', width: '100%', resize: 'vertical',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setEditingAdgang(false); setAdgangVal(adgangNote || '') }}
+                style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 'var(--r)', padding: '3px 10px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 11 }}>
+                Annuller
+              </button>
+              <button onClick={async () => {
+                if (!supabase) return
+                await supabase.from('locations').update({ adgang_note: adgangVal.trim() || null }).eq('id', locationId)
+                onAdgangSave?.(adgangVal.trim() || null)
+                setEditingAdgang(false)
+              }}
+                style={{ background: 'var(--accent)', border: 'none', color: '#fff', borderRadius: 'var(--r)', padding: '3px 10px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 11, fontWeight: 500 }}>
+                Gem
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p style={{ fontSize: 12, color: adgangNote ? 'var(--text)' : 'var(--muted)', fontFamily: 'Outfit, sans-serif', whiteSpace: 'pre-wrap', fontStyle: adgangNote ? 'normal' : 'italic' }}>
+            {adgangNote || 'Ingen adgangsinfo tilf\u00f8jet...'}
+          </p>
+        )}
       </div>
 
       {/* Outdoor map */}

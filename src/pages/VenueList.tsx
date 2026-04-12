@@ -23,7 +23,7 @@ export default function VenueList() {
 
   useEffect(() => {
     async function load() {
-      if (!supabase) return
+      if (!supabase) { setLoading(false); return }
       const [locRes, sessRes, statsRes] = await Promise.all([
         supabase.from('locations')
           .select('id, name, address, postal_code, region, phone, website, contacts, crm_status, venue_code, lat, lon, hidden, venue_type')

@@ -35,7 +35,18 @@ export default function SpaceCard({ space, onEdit, onDelete, onUpdate }: Props) 
       )}
       <div style={{ padding: '14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <h4 style={{ fontSize: 15, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{space.name}</h4>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {space.map_letter && (
+              <span style={{
+                width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: space.type === 'ude' ? '#2563eb' : 'var(--accent)', color: '#fff',
+                fontSize: 13, fontWeight: 700, fontFamily: 'Outfit, sans-serif', flexShrink: 0,
+              }}>
+                {space.map_letter}
+              </span>
+            )}
+            <h4 style={{ fontSize: 15, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{space.name}</h4>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => onEdit(space)} style={btnStyle}>Rediger</button>
             <button onClick={() => onDelete(space.id)} style={{ ...btnStyle, color: 'var(--red)' }}>Slet</button>
@@ -51,6 +62,12 @@ export default function SpaceCard({ space, onEdit, onDelete, onUpdate }: Props) 
             <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Adgangsvej: </span>
             {space.adgangsvej}
           </p>
+        )}
+        {space.instructor_info && (
+          <div style={{ marginTop: 6, padding: '6px 8px', background: 'var(--surface2)', borderRadius: 'var(--r)', borderLeft: '2px solid var(--accent)' }}>
+            <span style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'Outfit, sans-serif' }}>Instrukt\u00f8rinfo</span>
+            <p style={{ fontSize: 11, color: 'var(--text)', fontFamily: 'Outfit, sans-serif', marginTop: 2 }}>{space.instructor_info}</p>
+          </div>
         )}
         {space.note && (
           <p style={{ fontSize: 12, color: 'var(--accent)', fontFamily: 'Outfit, sans-serif', marginTop: 4 }}>

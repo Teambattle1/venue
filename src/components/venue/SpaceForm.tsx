@@ -23,6 +23,8 @@ export default function SpaceForm({ locationId, type, existing, venueLat, venueL
   const [imageUrl, setImageUrl] = useState(existing?.image_url || '')
   const [lat, setLat] = useState<number | null>(existing?.lat || null)
   const [lon, setLon] = useState<number | null>(existing?.lon || null)
+  const [mapLetter, setMapLetter] = useState(existing?.map_letter || '')
+  const [instructorInfo, setInstructorInfo] = useState(existing?.instructor_info || '')
   const [saving, setSaving] = useState(false)
 
   async function handleUpload(file: File) {
@@ -44,6 +46,8 @@ export default function SpaceForm({ locationId, type, existing, venueLat, venueL
       adgangsvej: adgangsvej.trim() || null,
       lat: lat,
       lon: lon,
+      map_letter: mapLetter.trim() || null,
+      instructor_info: instructorInfo.trim() || null,
     }
 
     if (existing) {
@@ -83,9 +87,20 @@ export default function SpaceForm({ locationId, type, existing, venueLat, venueL
         </h3>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={labelStyle}>Navn</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Fx. Store sal, Terrasse..." style={inputStyle} />
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Navn</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Fx. Store sal, Terrasse..." style={inputStyle} />
+            </div>
+            <div style={{ width: 80 }}>
+              <label style={labelStyle}>Kort-bogstav</label>
+              <select value={mapLetter} onChange={e => setMapLetter(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="">-</option>
+                {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
@@ -114,6 +129,15 @@ export default function SpaceForm({ locationId, type, existing, venueLat, venueL
                   Pin: {lat.toFixed(5)}, {lon.toFixed(5)}
                 </p>
               )}
+          </div>
+
+          <div>
+            <label style={labelStyle}>Instrukt\u00f8rinfo</label>
+            <textarea
+              value={instructorInfo} onChange={e => setInstructorInfo(e.target.value)}
+              placeholder="Info til instrukt\u00f8rer om dette rum/omr\u00e5de..." rows={2}
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
           </div>
 
           <div>
