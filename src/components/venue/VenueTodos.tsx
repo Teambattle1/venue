@@ -31,7 +31,7 @@ interface Props {
   venueName: string
 }
 
-export default function VenueTodos({ venueCode, venueName }: Props) {
+export default function VenueTodos({ venueCode }: Props) {
   const [todos, setTodos] = useState<Todo[]>([])
   const [loading, setLoading] = useState(true)
   const [showDone, setShowDone] = useState(false)

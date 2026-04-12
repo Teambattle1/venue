@@ -14,7 +14,7 @@ interface Props {
   onEditSpace: (space: VenueSpace) => void
 }
 
-export default function VenueSpacesScreen({ locationId, venueName, venueLat, venueLon, onBack, onAddSpace, onEditSpace }: Props) {
+export default function VenueSpacesScreen({ locationId, venueName, onBack, onAddSpace, onEditSpace }: Props) {
   const [spaces, setSpaces] = useState<VenueSpace[]>([])
   const [loading, setLoading] = useState(true)
 

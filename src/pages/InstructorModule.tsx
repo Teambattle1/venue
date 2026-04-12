@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
 import type { VenueSpace, Location } from '../lib/types'
 import NearbyScreen from '../components/instructor/NearbyScreen'
 import VenueCreateWizard from '../components/instructor/VenueCreateWizard'
@@ -15,7 +14,6 @@ type Screen =
   | { type: 'space-wizard'; location: LocationRow; existing?: VenueSpace; presetType?: 'inde' | 'ude' }
 
 export default function InstructorModule() {
-  const { locationId } = useParams()
   const [screen, setScreen] = useState<Screen>({ type: 'nearby' })
 
   // If direct link with locationId, we'd need to fetch the location

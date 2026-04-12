@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 
 interface ImageItem {
   id: string
@@ -14,8 +14,6 @@ interface Props {
 
 export default function MultiImageUpload({ images, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
-
   function handleFiles(files: FileList | null) {
     if (!files) return
     const newItems: ImageItem[] = []
