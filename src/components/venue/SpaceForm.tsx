@@ -78,7 +78,7 @@ export default function SpaceForm({ locationId, type, existing, venueLat, venueL
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--surface)', borderRadius: 'var(--r)', padding: 24,
-          width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto',
+          width: '100%', maxWidth: 820, maxHeight: '90vh', overflowY: 'auto',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}
       >
@@ -86,8 +86,8 @@ export default function SpaceForm({ locationId, type, existing, venueLat, venueL
           {existing ? 'Rediger' : 'Tilføj'} {type === 'inde' ? 'rum' : 'udendørs område'}
         </h3>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 20px' }}>
+          <div style={{ display: 'flex', gap: 12, gridColumn: '1 / -1' }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Navn</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Fx. Store sal, Terrasse..." style={inputStyle} />
@@ -158,7 +158,7 @@ export default function SpaceForm({ locationId, type, existing, venueLat, venueL
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8, gridColumn: '1 / -1' }}>
             <button onClick={onClose} style={{
               background: 'transparent', border: '1px solid var(--border)',
               color: 'var(--muted)', borderRadius: 'var(--r)', padding: '8px 20px',

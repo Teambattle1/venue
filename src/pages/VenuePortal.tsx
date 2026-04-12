@@ -135,11 +135,12 @@ export default function VenuePortal() {
             {location.logo_url && (
               <img src={location.logo_url} alt="" style={{ width: 60, height: 60, objectFit: 'contain', borderRadius: 'var(--r)', marginBottom: 8 }} />
             )}
-            <InfoRow label="Adresse" value={location.address} />
-            <InfoRow label="Postnr" value={location.postal_code} />
-            <InfoRow label="Region" value={location.region} />
-            <InfoRow label="Telefon" value={location.phone} link={location.phone ? `tel:${location.phone}` : undefined} />
-            <InfoRow label="Website" value={location.website} link={location.website} />
+            <InfoRow label="Adresse" value={location.address} field="address" onSave={updateField} />
+            <InfoRow label="Postnr" value={location.postal_code} field="postal_code" onSave={updateField} />
+            <InfoRow label="By" value={location.city} field="city" onSave={updateField} />
+            <InfoRow label="Region" value={location.region} field="region" onSave={updateField} />
+            <InfoRow label="Telefon" value={location.phone} field="phone" onSave={updateField} link={location.phone ? `tel:${location.phone}` : undefined} />
+            <InfoRow label="Website" value={location.website} field="website" onSave={updateField} link={location.website} />
 
             {/* Social icons */}
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -328,7 +329,8 @@ function Section({ title, children, accent }: { title: string; children: React.R
     <div style={{
       background: 'var(--surface)', borderRadius: 'var(--r)', padding: '14px 16px',
       boxShadow: 'var(--shadow)',
-      borderLeft: accent ? '3px solid var(--accent)' : undefined,
+      border: '1px solid var(--accent)',
+      borderLeft: accent ? '3px solid var(--accent)' : '1px solid var(--accent)',
     }}>
       <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
         {title}
@@ -338,18 +340,50 @@ function Section({ title, children, accent }: { title: string; children: React.R
   )
 }
 
-function InfoRow({ label, value, link }: { label: string; value?: string | null; link?: string }) {
-  if (!value) return null
+function InfoRow({ label, value, link, field, onSave }: {
+  label: string; value?: string | null; link?: string
+  field?: string; onSave?: (field: string, value: string | null) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(value || '')
+
+  function save() {
+    if (onSave && field) onSave(field, val.trim() || null)
+    setEditing(false)
+  }
+
+  if (editing && onSave && field) {
+    return (
+      <div style={{ padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif', display: 'block', marginBottom: 2 }}>{label}</span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <input value={val} onChange={e => setVal(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && save()}
+            autoFocus
+            style={{ flex: 1, padding: '3px 6px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'Outfit, sans-serif', fontSize: 12, outline: 'none' }}
+          />
+          <button onClick={save} style={{ background: 'var(--accent)', border: 'none', color: '#fff', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 10 }}>Gem</button>
+          <button onClick={() => { setEditing(false); setVal(value || '') }} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', fontSize: 10 }}>×</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+    <div
+      onClick={onSave && field ? () => setEditing(true) : undefined}
+      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '3px 0', borderBottom: '1px solid var(--border)', cursor: onSave && field ? 'pointer' : undefined }}
+    >
       <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif' }}>{label}</span>
       {link ? (
         <a href={link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
           style={{ fontSize: 12, color: 'var(--accent)', fontFamily: 'Outfit, sans-serif', textDecoration: 'none', textAlign: 'right', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {value}
+          {value || '—'}
         </a>
       ) : (
-        <span style={{ fontSize: 12, color: 'var(--text)', fontFamily: 'Outfit, sans-serif', textAlign: 'right' }}>{value}</span>
+        <span style={{ fontSize: 12, color: value ? 'var(--text)' : 'var(--muted)', fontFamily: 'Outfit, sans-serif', textAlign: 'right', fontStyle: value ? 'normal' : 'italic' }}>
+          {value || '—'}
+        </span>
       )}
     </div>
   )

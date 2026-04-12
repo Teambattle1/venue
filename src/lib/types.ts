@@ -45,6 +45,7 @@ export interface Location {
   portal_fields?: Record<string, boolean> | null
   adgang_note?: string | null
   venue_access_code?: string | null
+  city?: string | null
 }
 
 export interface VenueSpace {
