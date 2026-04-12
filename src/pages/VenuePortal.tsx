@@ -82,6 +82,27 @@ export default function VenuePortal() {
               {location.venue_code}
             </span>
           )}
+          {location.venue_access_code && (
+            <span title="Client adgangskode" style={{ fontFamily: 'monospace', fontSize: 11, background: 'var(--surface)', padding: '3px 8px', borderRadius: 'var(--r)', color: '#9f7aea', fontWeight: 600, border: '1px solid var(--border)' }}>
+              {location.venue_access_code}
+            </span>
+          )}
+          {location.venue_code && (
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/c/${location.venue_code}`
+                navigator.clipboard.writeText(url).catch(() => {})
+              }}
+              title="Kopiér client link"
+              style={{
+                background: 'var(--surface2)', border: '1px solid var(--border)',
+                borderRadius: 'var(--r)', padding: '3px 10px', cursor: 'pointer',
+                fontFamily: 'monospace', fontSize: 10, color: 'var(--muted)',
+              }}
+            >
+              /c/{location.venue_code} &#128203;
+            </button>
+          )}
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: statusColor, flexShrink: 0 }} title={location.crm_status} />
           <span style={{ fontSize: 11, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
             {location.crm_status}

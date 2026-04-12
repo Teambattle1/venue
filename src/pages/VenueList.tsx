@@ -13,7 +13,7 @@ export default function VenueList() {
   const [regionFilter, setRegionFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
-    (localStorage.getItem('venue_view') as ViewMode) || 'list'
+    (localStorage.getItem('venue_view') as ViewMode) || 'grid'
   )
   const [loading, setLoading] = useState(true)
   const [showHidden, setShowHidden] = useState(false)
@@ -26,7 +26,7 @@ export default function VenueList() {
       if (!supabase) { setLoading(false); return }
       const [locRes, sessRes, statsRes] = await Promise.all([
         supabase.from('locations')
-          .select('id, name, address, postal_code, region, phone, website, contacts, crm_status, venue_code, lat, lon, hidden, venue_type')
+          .select('id, name, address, postal_code, region, phone, website, contacts, crm_status, venue_code, lat, lon, hidden, venue_type, venue_access_code')
           .order('name', { ascending: true }),
         supabase.rpc('get_venue_session_counts'),
         supabase.rpc('get_venue_space_stats'),
@@ -176,7 +176,7 @@ export default function VenueList() {
           ))}
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div style={{ display: 'grid', gap: 4 }}>
           {filtered.map(loc => (
             <ListCard key={loc.id} loc={loc} onClick={() => navigate(`/v/${loc.venue_code}`)}
               showHidden={showHidden} onToggleHide={toggleHide}
@@ -237,6 +237,14 @@ function GridCard({ loc, onClick, showHidden, onToggleHide, sessionCount, stats 
             {loc.venue_code}
           </span>
         )}
+        {loc.venue_access_code && (
+          <span title="Client adgangskode" style={{
+            fontFamily: 'monospace', fontSize: 10, background: 'var(--surface2)',
+            padding: '2px 6px', borderRadius: 4, color: '#9f7aea', fontWeight: 600,
+          }}>
+            {loc.venue_access_code}
+          </span>
+        )}
         {sessionCount > 0 && (
           <span style={{
             fontSize: 10, background: 'var(--accent)', color: '#fff',
@@ -275,107 +283,110 @@ function GridCard({ loc, onClick, showHidden, onToggleHide, sessionCount, stats 
 function ListCard({ loc, onClick, showHidden, onToggleHide, sessionCount, stats }: {
   loc: Location; onClick: () => void; showHidden: boolean; onToggleHide: (id: string, hidden: boolean) => void; sessionCount: number; stats?: SpaceStats
 }) {
-  const hasContacts = (loc.contacts?.length || 0) > 0
-  const hasCoords = !!(loc.lat && loc.lon)
-  const isReady = hasContacts && hasCoords
+  const contactCount = loc.contacts?.length || 0
 
   return (
     <div onClick={onClick} style={{
       background: 'var(--surface)', borderRadius: 'var(--r)',
-      padding: '20px 24px', boxShadow: 'var(--shadow)', cursor: 'pointer',
-      border: `1px solid ${isReady ? 'var(--green)' : 'var(--border)'}`,
-      borderLeftWidth: 4, borderLeftColor: STATUS_COLORS[loc.crm_status] || '#8a8578',
+      padding: '10px 14px', cursor: 'pointer',
+      borderLeft: `3px solid ${STATUS_COLORS[loc.crm_status] || '#8a8578'}`,
       opacity: loc.hidden ? 0.4 : 1,
+      display: 'flex', alignItems: 'center', gap: 10,
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 300px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{loc.name}</h3>
-            {loc.venue_code && (
-              <span style={{
-                fontFamily: 'monospace', fontSize: 12, background: 'var(--surface2)',
-                padding: '2px 8px', borderRadius: 4, color: 'var(--accent)', fontWeight: 600,
-              }}>
-                {loc.venue_code}
-              </span>
-            )}
-            <span style={{
-              fontSize: 11, fontFamily: 'Outfit, sans-serif',
-              color: STATUS_COLORS[loc.crm_status] || '#8a8578',
-              textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600,
-            }}>
-              {loc.crm_status}
-            </span>
-            {sessionCount > 0 && (
-              <span style={{
-                fontSize: 10, background: 'var(--accent)', color: '#fff',
-                padding: '2px 8px', borderRadius: 4, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
-              }}>
-                {sessionCount} session{sessionCount !== 1 ? 's' : ''}
-              </span>
-            )}
-            {showHidden && (
-              <button
-                onClick={e => { e.stopPropagation(); onToggleHide(loc.id, !loc.hidden) }}
-                title={loc.hidden ? 'Vis venue' : 'Skjul venue'}
-                style={{
-                  background: loc.hidden ? 'var(--accent)' : 'var(--surface2)',
-                  border: '1px solid var(--border)', borderRadius: 'var(--r)',
-                  padding: '2px 10px', cursor: 'pointer',
-                  fontFamily: 'Outfit, sans-serif', fontSize: 11, color: loc.hidden ? '#fff' : 'var(--muted)',
-                  marginLeft: 'auto',
-                }}
-              >
-                {loc.hidden ? 'Vis' : 'Skjul'}
-              </button>
-            )}
-          </div>
-          {loc.address && <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{loc.address}</p>}
-          <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            {stats && stats.images && (
-              <span title="Har billeder" style={{ fontSize: 10, background: 'var(--surface2)', padding: '1px 6px', borderRadius: 4, color: 'var(--green)', fontFamily: 'Outfit, sans-serif' }}>
-                IMG
-              </span>
-            )}
-            {stats && stats.coords && (
-              <span title="Har kort-pins" style={{ fontSize: 10, background: 'var(--surface2)', padding: '1px 6px', borderRadius: 4, color: '#2563eb', fontFamily: 'Outfit, sans-serif' }}>
-                MAP
-              </span>
-            )}
-            {loc.lat && loc.lon && (
-              <span title="Har placering" style={{ fontSize: 10, background: 'var(--surface2)', padding: '1px 6px', borderRadius: 4, color: 'var(--accent)', fontFamily: 'Outfit, sans-serif' }}>
-                PIN
-              </span>
-            )}
-            {stats && stats.spaces > 0 && (
-              <span style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif' }}>
-                {stats.spaces} rum/område{stats.spaces !== 1 ? 'r' : ''}
-              </span>
-            )}
-          </div>
-        </div>
+      {/* Name */}
+      <h3 style={{
+        fontSize: 14, fontWeight: 600, fontFamily: 'Outfit, sans-serif',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        minWidth: 0, flex: '0 1 200px',
+      }}>
+        {loc.name}
+      </h3>
 
-        {loc.contacts?.length > 0 && (
-          <div style={{ flex: '0 1 400px', borderLeft: '1px solid var(--border)', paddingLeft: 16 }}>
-            <p style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontFamily: 'Outfit, sans-serif' }}>
-              Kontaktpersoner ({loc.contacts.length})
-            </p>
-            {loc.contacts.map((c: Contact) => (
-              <div key={c.id} style={{ marginBottom: 8, fontSize: 13, fontFamily: 'Outfit, sans-serif' }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                  <span style={{ fontWeight: 500 }}>{c.name || '(intet navn)'}</span>
-                  {c.title && <span style={{ color: 'var(--muted)', fontSize: 12 }}>{c.title}</span>}
-                </div>
-                <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
-                  {c.mobile && <span>{c.mobile}</span>}
-                  {c.email && <a href={`mailto:${c.email}`} onClick={e => e.stopPropagation()} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{c.email}</a>}
-                </div>
-                {c.notes && <p style={{ fontSize: 11, color: 'var(--accent)', marginTop: 2 }}>{c.notes}</p>}
-              </div>
-            ))}
-          </div>
+      {/* Code */}
+      {loc.venue_code && (
+        <span style={{
+          fontFamily: 'monospace', fontSize: 10, background: 'var(--surface2)',
+          padding: '1px 6px', borderRadius: 4, color: 'var(--accent)', fontWeight: 600,
+          flexShrink: 0,
+        }}>
+          {loc.venue_code}
+        </span>
+      )}
+      {loc.venue_access_code && (
+        <span title="Client kode" style={{
+          fontFamily: 'monospace', fontSize: 9, background: 'var(--surface2)',
+          padding: '1px 5px', borderRadius: 3, color: '#9f7aea', fontWeight: 600,
+          flexShrink: 0,
+        }}>
+          {loc.venue_access_code}
+        </span>
+      )}
+
+      {/* Address */}
+      <span style={{
+        fontSize: 12, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        flex: '1 1 150px', minWidth: 0,
+      }}>
+        {loc.address || '—'}
+      </span>
+
+      {/* Badges */}
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+        {sessionCount > 0 && (
+          <span style={{
+            fontSize: 9, background: 'var(--accent)', color: '#fff',
+            padding: '1px 6px', borderRadius: 4, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
+          }}>
+            {sessionCount}
+          </span>
+        )}
+        {contactCount > 0 && (
+          <span style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif' }}>
+            {contactCount}p
+          </span>
+        )}
+        {stats && stats.images && (
+          <span style={{ fontSize: 9, background: 'var(--surface2)', padding: '1px 5px', borderRadius: 3, color: 'var(--green)', fontFamily: 'Outfit, sans-serif' }}>
+            IMG
+          </span>
+        )}
+        {stats && stats.coords && (
+          <span style={{ fontSize: 9, background: 'var(--surface2)', padding: '1px 5px', borderRadius: 3, color: '#2563eb', fontFamily: 'Outfit, sans-serif' }}>
+            MAP
+          </span>
+        )}
+        {loc.lat && loc.lon && (
+          <span style={{ fontSize: 9, background: 'var(--surface2)', padding: '1px 5px', borderRadius: 3, color: 'var(--accent)', fontFamily: 'Outfit, sans-serif' }}>
+            PIN
+          </span>
+        )}
+        {stats && stats.spaces > 0 && (
+          <span style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif' }}>
+            {stats.spaces}r
+          </span>
         )}
       </div>
+
+      {/* Hide toggle */}
+      {showHidden && (
+        <button
+          onClick={e => { e.stopPropagation(); onToggleHide(loc.id, !loc.hidden) }}
+          title={loc.hidden ? 'Vis venue' : 'Skjul venue'}
+          style={{
+            background: loc.hidden ? 'var(--accent)' : 'var(--surface2)',
+            border: '1px solid var(--border)', borderRadius: 'var(--r)',
+            padding: '1px 8px', cursor: 'pointer',
+            fontFamily: 'Outfit, sans-serif', fontSize: 10, color: loc.hidden ? '#fff' : 'var(--muted)',
+            flexShrink: 0,
+          }}
+        >
+          {loc.hidden ? 'Vis' : 'Skjul'}
+        </button>
+      )}
+
+      {/* Arrow */}
+      <span style={{ color: 'var(--muted)', fontSize: 12, flexShrink: 0 }}>&#9654;</span>
     </div>
   )
 }

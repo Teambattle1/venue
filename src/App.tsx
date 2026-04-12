@@ -4,6 +4,7 @@ import IntroAnimation from './components/IntroAnimation'
 import VenueList from './pages/VenueList'
 import VenuePortal from './pages/VenuePortal'
 import InstructorModule from './pages/InstructorModule'
+import ClientVenuePortal from './pages/ClientVenuePortal'
 
 export default function App() {
   const [introSeen, setIntroSeen] = useState(() => {
@@ -23,6 +24,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<VenueList />} />
         <Route path="/v/:code" element={<VenuePortal />} />
+        <Route path="/c/:code" element={<ClientVenuePortal />} />
         <Route path="/i" element={<InstructorModule />} />
         <Route path="/i/:locationId" element={<InstructorModule />} />
       </Routes>
