@@ -98,6 +98,28 @@ export default function VenueList() {
           {filtered.length} / {locations.length} venues
         </span>
 
+        {/* QR generator */}
+        <a
+          href="https://teambattle1.github.io/QR/"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="QR code generator & scanner"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 'var(--r)',
+            border: '1px solid var(--border)', background: 'var(--surface)',
+            color: 'var(--text)', textDecoration: 'none',
+            fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff6600" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/>
+            <path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/>
+            <path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/>
+          </svg>
+          QR
+        </a>
+
         {/* Admin gear */}
         <div style={{ position: 'relative' }}>
           <button
