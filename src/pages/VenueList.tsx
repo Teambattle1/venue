@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { STATUS_COLORS } from '../lib/types'
-import type { Contact, Location } from '../lib/types'
+import type { Location } from '../lib/types'
 
 type ViewMode = 'list' | 'grid'
 
