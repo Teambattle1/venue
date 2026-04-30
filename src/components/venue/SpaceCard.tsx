@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { ACTIVITIES } from '../../lib/types'
 import type { VenueSpace } from '../../lib/types'
@@ -7,10 +8,14 @@ interface Props {
   onEdit: (space: VenueSpace) => void
   onDelete: (id: string) => void
   onUpdate?: (space: VenueSpace) => void
+  venueCode?: string | null
+  highlighted?: boolean
 }
 
-export default function SpaceCard({ space, onEdit, onDelete, onUpdate }: Props) {
+export default function SpaceCard({ space, onEdit, onDelete, onUpdate, venueCode, highlighted }: Props) {
   const suitable = space.suitable_activities || []
+  const [copied, setCopied] = useState(false)
+  const accentColor = space.type === 'ude' ? '#2563eb' : 'var(--accent)'
 
   async function toggleActivity(actId: string) {
     if (!supabase) return
@@ -21,12 +26,25 @@ export default function SpaceCard({ space, onEdit, onDelete, onUpdate }: Props) 
     onUpdate?.({ ...space, suitable_activities: next })
   }
 
+  function copyLink() {
+    if (!venueCode) return
+    const url = `${window.location.origin}/v/${venueCode}?space=${space.id}`
+    navigator.clipboard.writeText(url).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
   return (
-    <div style={{
-      background: 'var(--surface)', borderRadius: 'var(--r)',
-      overflow: 'hidden', boxShadow: 'var(--shadow)',
-      border: `2px solid ${space.type === 'ude' ? '#2563eb' : 'var(--accent)'}`,
-    }}>
+    <div
+      id={`space-${space.id}`}
+      style={{
+        background: 'var(--surface)', borderRadius: 'var(--r)',
+        overflow: 'hidden', boxShadow: 'var(--shadow)',
+        border: `2px solid ${accentColor}`,
+        animation: highlighted ? 'spaceHighlightGlow 2s ease-out' : undefined,
+        scrollMarginTop: 80,
+      }}
+    >
       {space.image_url && (
         <img
           src={space.image_url} alt={space.name}
@@ -47,7 +65,28 @@ export default function SpaceCard({ space, onEdit, onDelete, onUpdate }: Props) 
             )}
             <h4 style={{ fontSize: 15, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{space.name}</h4>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {venueCode && (
+              <button
+                onClick={copyLink}
+                title={copied ? 'Kopieret!' : 'Kopiér link til denne placering'}
+                style={{
+                  background: copied ? accentColor : 'transparent',
+                  border: `1px solid ${accentColor}`,
+                  borderRadius: 4, padding: '2px 6px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  color: copied ? '#fff' : accentColor,
+                  fontFamily: 'Outfit, sans-serif', fontSize: 10, fontWeight: 600,
+                  transition: 'all 0.15s',
+                }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                {copied ? 'Kopieret' : 'Link'}
+              </button>
+            )}
             <button onClick={() => onEdit(space)} style={btnStyle}>Rediger</button>
             <button onClick={() => onDelete(space.id)} style={{ ...btnStyle, color: 'var(--red)' }}>Slet</button>
           </div>

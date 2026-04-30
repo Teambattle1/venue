@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Location } from '../lib/types'
 import { STATUS_COLORS } from '../lib/types'
@@ -12,6 +12,8 @@ import VenueTodos from '../components/venue/VenueTodos'
 
 export default function VenuePortal() {
   const { code } = useParams<{ code: string }>()
+  const [searchParams] = useSearchParams()
+  const highlightSpaceId = searchParams.get('space')
   const [location, setLocation] = useState<Location | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -86,6 +88,22 @@ export default function VenuePortal() {
             <span title="Client adgangskode" style={{ fontFamily: 'monospace', fontSize: 11, background: 'var(--surface)', padding: '3px 8px', borderRadius: 'var(--r)', color: '#9f7aea', fontWeight: 600, border: '1px solid var(--border)' }}>
               {location.venue_access_code}
             </span>
+          )}
+          {location.venue_code && (
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/v/${location.venue_code}`
+                navigator.clipboard.writeText(url).catch(() => {})
+              }}
+              title="Kopiér admin-link til dette venue"
+              style={{
+                background: 'var(--surface2)', border: '1px solid var(--accent)',
+                borderRadius: 'var(--r)', padding: '3px 10px', cursor: 'pointer',
+                fontFamily: 'monospace', fontSize: 10, color: 'var(--accent)',
+              }}
+            >
+              /v/{location.venue_code} &#128203;
+            </button>
           )}
           {location.venue_code && (
             <button
@@ -253,7 +271,7 @@ export default function VenuePortal() {
           />
 
           {/* Opgaver */}
-          <VenueTodos venueCode={location.venue_code || ''} venueName={location.name} />
+          <VenueTodos venueCode={location.venue_code || ''} venueName={location.name} locationId={location.id} />
 
           {/* Sessions */}
           <SessionsSection
@@ -315,6 +333,8 @@ export default function VenuePortal() {
             venueType={location.venue_type || 'begge'}
             adgangNote={location.adgang_note}
             onAdgangSave={(note) => setLocation({ ...location, adgang_note: note })}
+            venueCode={location.venue_code}
+            highlightSpaceId={highlightSpaceId}
           />
         </div>
       </div>

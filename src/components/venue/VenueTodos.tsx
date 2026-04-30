@@ -1,15 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
+import type { Todo } from '../../lib/types'
 
-interface Todo {
+type SpaceLite = {
   id: string
-  title: string
-  description?: string | null
-  priority?: string | null
-  due_date?: string | null
-  resolved: boolean
-  created_at: string
-  is_error?: boolean
+  name: string
+  type: 'inde' | 'ude'
+  sort_order: number
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -29,10 +26,12 @@ const PRIORITY_OPTIONS = ['HASTER', 'Vigtigt', 'Normal', 'Ved lejlighed']
 interface Props {
   venueCode: string
   venueName: string
+  locationId: string
 }
 
-export default function VenueTodos({ venueCode }: Props) {
+export default function VenueTodos({ venueCode, locationId }: Props) {
   const [todos, setTodos] = useState<Todo[]>([])
+  const [spaces, setSpaces] = useState<SpaceLite[]>([])
   const [loading, setLoading] = useState(true)
   const [showDone, setShowDone] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -40,13 +39,14 @@ export default function VenueTodos({ venueCode }: Props) {
   const [newDesc, setNewDesc] = useState('')
   const [newPriority, setNewPriority] = useState('Normal')
   const [newDueDate, setNewDueDate] = useState('')
+  const [newSpaceId, setNewSpaceId] = useState<string>('')
   const [saving, setSaving] = useState(false)
 
   const fetchTodos = useCallback(async () => {
     if (!supabase) { setLoading(false); return }
     const { data } = await supabase
       .from('todos')
-      .select('id, title, description, priority, due_date, resolved, created_at, is_error')
+      .select('id, title, description, priority, due_date, resolved, created_at, is_error, space_id')
       .eq('location', venueCode)
       .order('created_at', { ascending: false })
     if (data) setTodos(data)
@@ -54,6 +54,22 @@ export default function VenueTodos({ venueCode }: Props) {
   }, [venueCode])
 
   useEffect(() => { fetchTodos() }, [fetchTodos])
+
+  useEffect(() => {
+    async function loadSpaces() {
+      if (!supabase || !locationId) return
+      const { data } = await supabase
+        .from('venue_spaces')
+        .select('id, name, type, sort_order')
+        .eq('location_id', locationId)
+        .order('type', { ascending: true })
+        .order('sort_order', { ascending: true })
+      if (data) setSpaces(data as SpaceLite[])
+    }
+    loadSpaces()
+  }, [locationId])
+
+  const spaceById = (id?: string | null) => spaces.find(s => s.id === id)
 
   async function addTodo() {
     if (!supabase || !newTitle.trim()) return
@@ -64,12 +80,14 @@ export default function VenueTodos({ venueCode }: Props) {
       priority: newPriority,
       due_date: newDueDate || null,
       location: venueCode,
+      space_id: newSpaceId || null,
       resolved: false,
     })
     setNewTitle('')
     setNewDesc('')
     setNewPriority('Normal')
     setNewDueDate('')
+    setNewSpaceId('')
     setAdding(false)
     setSaving(false)
     fetchTodos()
@@ -143,13 +161,37 @@ export default function VenueTodos({ venueCode }: Props) {
               placeholder="Beskrivelse (valgfri)..." rows={2}
               style={{ ...inputStyle, resize: 'vertical' }}
             />
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <select value={newPriority} onChange={e => setNewPriority(e.target.value)}
                 style={{ ...inputStyle, width: 'auto', cursor: 'pointer' }}>
                 {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
               <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
                 style={{ ...inputStyle, width: 'auto' }} />
+              {spaces.length > 0 && (
+                <select
+                  value={newSpaceId}
+                  onChange={e => setNewSpaceId(e.target.value)}
+                  title="Vælg placering (valgfri)"
+                  style={{ ...inputStyle, width: 'auto', cursor: 'pointer', flex: '1 1 180px' }}
+                >
+                  <option value="">— Hele venuet —</option>
+                  {spaces.filter(s => s.type === 'inde').length > 0 && (
+                    <optgroup label="Inde">
+                      {spaces.filter(s => s.type === 'inde').map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {spaces.filter(s => s.type === 'ude').length > 0 && (
+                    <optgroup label="Ude">
+                      {spaces.filter(s => s.type === 'ude').map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
               <button onClick={addTodo} disabled={saving || !newTitle.trim()} style={{
@@ -179,7 +221,13 @@ export default function VenueTodos({ venueCode }: Props) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {active.map(todo => (
-          <TodoItem key={todo.id} todo={todo} onToggle={toggleResolved} onDelete={deleteTodo} formatDueDate={formatDueDate} />
+          <TodoItem
+            key={todo.id} todo={todo}
+            onToggle={toggleResolved} onDelete={deleteTodo}
+            formatDueDate={formatDueDate}
+            space={spaceById(todo.space_id)}
+            venueCode={venueCode}
+          />
         ))}
       </div>
 
@@ -199,7 +247,13 @@ export default function VenueTodos({ venueCode }: Props) {
           {showDone && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, opacity: 0.6 }}>
               {done.map(todo => (
-                <TodoItem key={todo.id} todo={todo} onToggle={toggleResolved} onDelete={deleteTodo} formatDueDate={formatDueDate} />
+                <TodoItem
+                  key={todo.id} todo={todo}
+                  onToggle={toggleResolved} onDelete={deleteTodo}
+                  formatDueDate={formatDueDate}
+                  space={spaceById(todo.space_id)}
+                  venueCode={venueCode}
+                />
               ))}
             </div>
           )}
@@ -209,14 +263,17 @@ export default function VenueTodos({ venueCode }: Props) {
   )
 }
 
-function TodoItem({ todo, onToggle, onDelete, formatDueDate }: {
+function TodoItem({ todo, onToggle, onDelete, formatDueDate, space, venueCode }: {
   todo: Todo
   onToggle: (id: string, resolved: boolean) => void
   onDelete: (id: string) => void
   formatDueDate: (d?: string | null) => { text: string; color: string } | null
+  space?: SpaceLite
+  venueCode: string
 }) {
   const prioColor = PRIORITY_COLORS[todo.priority || ''] || '#6b7280'
   const due = formatDueDate(todo.due_date)
+  const spaceColor = space?.type === 'ude' ? '#2563eb' : 'var(--accent)'
 
   return (
     <div style={{
@@ -255,6 +312,27 @@ function TodoItem({ todo, onToggle, onDelete, formatDueDate }: {
             }}>
               {due.text}
             </span>
+          )}
+          {space && (
+            <a
+              href={`/v/${venueCode}?space=${space.id}`}
+              title={`Gå til ${space.type === 'ude' ? 'areal' : 'lokale'}: ${space.name}`}
+              onClick={e => e.stopPropagation()}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 10, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
+                padding: '2px 8px', borderRadius: 4,
+                background: `color-mix(in srgb, ${spaceColor} 18%, transparent)`,
+                color: spaceColor, textDecoration: 'none',
+                border: `1px solid color-mix(in srgb, ${spaceColor} 40%, transparent)`,
+              }}
+            >
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              {space.name}
+            </a>
           )}
         </div>
         {todo.description && (

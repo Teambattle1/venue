@@ -76,6 +76,18 @@ export interface SpaceImage {
   created_at: string
 }
 
+export interface Todo {
+  id: string
+  title: string
+  description?: string | null
+  priority?: string | null
+  due_date?: string | null
+  resolved: boolean
+  created_at: string
+  is_error?: boolean
+  space_id?: string | null
+}
+
 export const ACTIVITIES = [
   { id: 'A1', name: 'TeamChallenge', color: '#fdc700' },
   { id: 'A2', name: 'TeamLazer', color: '#2563eb' },

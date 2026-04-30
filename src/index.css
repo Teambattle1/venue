@@ -27,3 +27,14 @@ body {
 h1, h2, h3, h4 {
   font-family: 'Playfair Display', Georgia, serif;
 }
+
+@keyframes spaceHighlightGlow {
+  0% {
+    box-shadow: 0 0 0 4px rgba(212, 100, 10, 0.7), 0 0 24px rgba(212, 100, 10, 0.5);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow: var(--shadow);
+    transform: scale(1);
+  }
+}

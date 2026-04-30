@@ -14,9 +14,11 @@ interface Props {
   venueType?: 'inde' | 'ude' | 'begge'
   adgangNote?: string | null
   onAdgangSave?: (note: string | null) => void
+  venueCode?: string | null
+  highlightSpaceId?: string | null
 }
 
-export default function FloorPlanSection({ locationId, venueLat, venueLon, venueName, venueType = 'begge', adgangNote, onAdgangSave }: Props) {
+export default function FloorPlanSection({ locationId, venueLat, venueLon, venueName, venueType = 'begge', adgangNote, onAdgangSave, venueCode, highlightSpaceId }: Props) {
   const [spaces, setSpaces] = useState<VenueSpace[]>([])
   const [editingAdgang, setEditingAdgang] = useState(false)
   const [adgangVal, setAdgangVal] = useState(adgangNote || '')
@@ -38,6 +40,16 @@ export default function FloorPlanSection({ locationId, venueLat, venueLon, venue
   }
 
   useEffect(() => { load() }, [locationId])
+
+  useEffect(() => {
+    if (!highlightSpaceId || spaces.length === 0) return
+    const el = document.getElementById(`space-${highlightSpaceId}`)
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    }
+  }, [highlightSpaceId, spaces])
 
   async function handleDelete(id: string) {
     if (!supabase || !confirm('Slet dette rum/område?')) return
@@ -141,6 +153,8 @@ export default function FloorPlanSection({ locationId, venueLat, venueLon, venue
                 {inde.map(s => (
                   <SpaceCard
                     key={s.id} space={s}
+                    venueCode={venueCode}
+                    highlighted={highlightSpaceId === s.id}
                     onEdit={sp => { setEditSpace(sp); setFormType('inde'); setShowForm(true) }}
                     onDelete={handleDelete}
                     onUpdate={updated => setSpaces(prev => prev.map(p => p.id === updated.id ? updated : p))}
@@ -184,6 +198,8 @@ export default function FloorPlanSection({ locationId, venueLat, venueLon, venue
                 {ude.map(s => (
                   <SpaceCard
                     key={s.id} space={s}
+                    venueCode={venueCode}
+                    highlighted={highlightSpaceId === s.id}
                     onEdit={sp => { setEditSpace(sp); setFormType('ude'); setShowForm(true) }}
                     onDelete={handleDelete}
                     onUpdate={updated => setSpaces(prev => prev.map(p => p.id === updated.id ? updated : p))}
