@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ACTIVITIES } from '../lib/types'
@@ -11,6 +11,8 @@ import {
   extractPostcode,
   regionFromPostcode,
   geocodeAddress,
+  searchAddresses,
+  type AddressSuggestion,
 } from '../lib/locationHelpers'
 
 const REGIONS = ['Sjælland', 'Fyn', 'Jylland', 'Bornholm']
@@ -48,6 +50,8 @@ export default function PublicLocations() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
+  const [cityFilter, setCityFilter] = useState('')
+  const [activityFilter, setActivityFilter] = useState('')
   const [showHidden, setShowHidden] = useState(false)
   const [editing, setEditing] = useState<PublicLocation | null>(null)
   const [saving, setSaving] = useState(false)
@@ -90,11 +94,21 @@ export default function PublicLocations() {
       }
       if (typeFilter && p.place_type !== typeFilter) return false
       if (regionFilter && p.region !== regionFilter) return false
+      if (cityFilter && p.city !== cityFilter) return false
+      if (activityFilter && !(p.best_for || []).includes(activityFilter)) return false
       return true
     })
-  }, [items, showHidden, search, typeFilter, regionFilter])
+  }, [items, showHidden, search, typeFilter, regionFilter, cityFilter, activityFilter])
 
   const hiddenCount = items.filter(i => i.hidden).length
+
+  const cityOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const p of items) {
+      if (p.city && p.city.trim()) set.add(p.city.trim())
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'da'))
+  }, [items])
 
   const mapUrl = useMemo(
     () => buildMyMapEmbedUrl({ center: mapCenter, zoom: defaultZoom }),
@@ -241,6 +255,45 @@ export default function PublicLocations() {
           <option value="">Alle regioner</option>
           {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
+        <select
+          value={cityFilter}
+          onChange={e => setCityFilter(e.target.value)}
+          style={{ ...inputStyle, cursor: 'pointer' }}
+          disabled={cityOptions.length === 0}
+          title={cityOptions.length === 0 ? 'Ingen byer registreret endnu' : ''}
+        >
+          <option value="">Alle byer</option>
+          {cityOptions.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={activityFilter} onChange={e => setActivityFilter(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Alle aktiviteter</option>
+          {ACTIVITIES.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+        {(typeFilter || regionFilter || cityFilter || activityFilter || search) && (
+          <button
+            onClick={() => {
+              setTypeFilter('')
+              setRegionFilter('')
+              setCityFilter('')
+              setActivityFilter('')
+              setSearch('')
+            }}
+            style={{
+              background: 'var(--surface)',
+              color: 'var(--muted)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r)',
+              padding: '6px 10px',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: 11,
+              cursor: 'pointer',
+              letterSpacing: '0.06em',
+            }}
+            title="Nulstil alle filtre"
+          >
+            NULSTIL
+          </button>
+        )}
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', fontFamily: 'Outfit, sans-serif' }}>
           <input type="checkbox" checked={showHidden} onChange={e => setShowHidden(e.target.checked)} style={{ accentColor: 'var(--accent)' }} />
           Vis skjulte ({hiddenCount})
@@ -506,6 +559,10 @@ function PlaceEditModal({ place, onClose, onSave, onDelete, saving }: {
     place.lat != null && place.lon != null ? `${place.lat}, ${place.lon}` : '',
   )
   const [geocoding, setGeocoding] = useState(false)
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suppressNextSearch, setSuppressNextSearch] = useState(false)
+  const addressContainerRef = useRef<HTMLDivElement>(null)
 
   function patch(p: Partial<PublicLocation>) {
     setDraft(d => ({ ...d, ...p }))
@@ -519,6 +576,58 @@ function PlaceEditModal({ place, onClose, onSave, onDelete, saving }: {
     } else if (raw.trim() === '') {
       patch({ lat: null, lon: null })
     }
+  }
+
+  // Debounced DAWA-opslag mens brugeren skriver. Vi bruger AbortController så
+  // sene svar fra tidligere queries ikke overskriver et nyere resultat.
+  useEffect(() => {
+    if (suppressNextSearch) {
+      setSuppressNextSearch(false)
+      return
+    }
+    const q = (draft.address || '').trim()
+    if (q.length < 2) {
+      setAddressSuggestions([])
+      return
+    }
+    const ctrl = new AbortController()
+    const t = setTimeout(async () => {
+      const results = await searchAddresses(q, ctrl.signal)
+      if (!ctrl.signal.aborted) setAddressSuggestions(results)
+    }, 250)
+    return () => {
+      clearTimeout(t)
+      ctrl.abort()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.address])
+
+  // Luk dropdown ved klik udenfor
+  useEffect(() => {
+    if (!showSuggestions) return
+    const onDocClick = (e: MouseEvent) => {
+      if (!addressContainerRef.current?.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [showSuggestions])
+
+  function pickSuggestion(s: AddressSuggestion) {
+    const addressLine = `${s.street} ${s.houseNumber}`.trim()
+    setSuppressNextSearch(true)
+    patch({
+      address: addressLine,
+      postal_code: s.postalCode || draft.postal_code,
+      city: s.city || draft.city,
+      region: regionFromPostcode(s.postalCode) || draft.region,
+      lat: s.lat,
+      lon: s.lon,
+    })
+    setCoordsRaw(`${s.lat}, ${s.lon}`)
+    setAddressSuggestions([])
+    setShowSuggestions(false)
   }
 
   async function tryGeocode() {
@@ -621,28 +730,78 @@ function PlaceEditModal({ place, onClose, onSave, onDelete, saving }: {
 
           {/* Adresse */}
           <Field label="Adresse">
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input
-                value={draft.address || ''}
-                onChange={e => {
-                  const addr = e.target.value
-                  const pc = extractPostcode(addr)
-                  patch({
-                    address: addr,
-                    postal_code: pc || draft.postal_code,
-                    region: regionFromPostcode(pc) || draft.region,
-                  })
-                }}
-                placeholder="Fx Strandvejen 100, 3220 Tisvildeleje"
-                style={{ ...inputStyle, flex: 1 }}
-              />
-              <button
-                onClick={tryGeocode}
-                disabled={geocoding || !draft.address?.trim()}
-                style={{ ...secondaryBtn, opacity: geocoding ? 0.5 : 1 }}
-              >
-                {geocoding ? '...' : 'GEOKOD'}
-              </button>
+            <div ref={addressContainerRef} style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  value={draft.address || ''}
+                  onChange={e => {
+                    const addr = e.target.value
+                    const pc = extractPostcode(addr)
+                    patch({
+                      address: addr,
+                      postal_code: pc || draft.postal_code,
+                      region: regionFromPostcode(pc) || draft.region,
+                    })
+                    setShowSuggestions(true)
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder="Fx Strandvejen 100, 3220 Tisvildeleje"
+                  style={{ ...inputStyle, flex: 1 }}
+                  autoComplete="off"
+                />
+                <button
+                  onClick={tryGeocode}
+                  disabled={geocoding || !draft.address?.trim()}
+                  style={{ ...secondaryBtn, opacity: geocoding ? 0.5 : 1 }}
+                >
+                  {geocoding ? '...' : 'GEOKOD'}
+                </button>
+              </div>
+              {showSuggestions && addressSuggestions.length > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--r)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    zIndex: 1100,
+                    maxHeight: 280,
+                    overflowY: 'auto',
+                  }}
+                >
+                  {addressSuggestions.map((s, i) => (
+                    <button
+                      key={`${s.text}-${i}`}
+                      type="button"
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        pickSuggestion(s)
+                      }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '10px 12px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderBottom: i < addressSuggestions.length - 1 ? '1px solid var(--border)' : 'none',
+                        color: 'var(--text)',
+                        cursor: 'pointer',
+                        fontFamily: 'Outfit, sans-serif',
+                        fontSize: 14,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      {s.text}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </Field>
 

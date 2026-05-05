@@ -29,31 +29,78 @@ export function parseLatLon(val?: string | null): { lat: number; lon: number } |
   return { lat, lon }
 }
 
-// Direct Nominatim er CORS-blokeret fra browser, så vi prøver via /api/geocode
-// (Netlify function fra FLOW-mønsteret). Hvis ikke tilgængelig, returnerer null
-// så brugeren manuelt kan indtaste lat/lon.
+// DAWA (Danmarks Adressers Web API) — gratis, officielt dansk register med
+// CORS-headers slået til, så vi kan kalde det direkte fra browseren uden
+// serverless function. Vi bruger /adgangsadresser/autocomplete som returnerer
+// vej + husnr + postnr + by + WGS84-koordinater i ét opslag.
+// Docs: https://dawadocs.dataforsyningen.dk/dok/api/autocomplete
+const DAWA_AUTOCOMPLETE_URL = 'https://dawa.aws.dk/adgangsadresser/autocomplete'
+
+export interface AddressSuggestion {
+  text: string // "Hammelstrupvej 100, 2500 Valby"
+  street: string
+  houseNumber: string
+  postalCode: string
+  city: string
+  lat: number
+  lon: number
+}
+
+interface DawaAutocompleteItem {
+  tekst?: string
+  adgangsadresse?: {
+    vejnavn?: string
+    husnr?: string
+    postnr?: string
+    postnrnavn?: string
+    x?: number // longitude (WGS84)
+    y?: number // latitude (WGS84)
+  }
+}
+
+function mapDawaItem(item: DawaAutocompleteItem): AddressSuggestion | null {
+  const a = item.adgangsadresse
+  if (!a || a.x == null || a.y == null) return null
+  return {
+    text: item.tekst || '',
+    street: a.vejnavn || '',
+    houseNumber: a.husnr || '',
+    postalCode: a.postnr || '',
+    city: a.postnrnavn || '',
+    lat: Number(a.y),
+    lon: Number(a.x),
+  }
+}
+
+export async function searchAddresses(
+  query: string,
+  signal?: AbortSignal,
+): Promise<AddressSuggestion[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  try {
+    const url = `${DAWA_AUTOCOMPLETE_URL}?q=${encodeURIComponent(q)}&fuzzy=&per_side=8`
+    const r = await fetch(url, { signal })
+    if (!r.ok) return []
+    const data = (await r.json()) as DawaAutocompleteItem[]
+    if (!Array.isArray(data)) return []
+    return data.map(mapDawaItem).filter((x): x is AddressSuggestion => x !== null)
+  } catch {
+    return []
+  }
+}
+
 export async function geocodeAddress(
   addr: string,
 ): Promise<{ lat: number; lon: number; full?: string; postcode?: string | null } | null> {
-  try {
-    const r = await fetch(`/api/geocode?q=${encodeURIComponent(addr)}`)
-    if (!r.ok) return null
-    const data = (await r.json()) as Array<{
-      lat: string
-      lon: string
-      display_name?: string
-      address?: { postcode?: string }
-    }>
-    if (!Array.isArray(data) || data.length === 0) return null
-    const top = data[0]
-    return {
-      lat: parseFloat(top.lat),
-      lon: parseFloat(top.lon),
-      full: top.display_name,
-      postcode: top.address?.postcode || extractPostcode(top.display_name),
-    }
-  } catch {
-    return null
+  const matches = await searchAddresses(addr)
+  if (matches.length === 0) return null
+  const top = matches[0]
+  return {
+    lat: top.lat,
+    lon: top.lon,
+    full: top.text,
+    postcode: top.postalCode || extractPostcode(top.text) || null,
   }
 }
 
