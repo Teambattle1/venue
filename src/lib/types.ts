@@ -110,3 +110,37 @@ export const STATUS_COLORS: Record<string, string> = {
   dormant: '#8a8578',
   rejected: '#c03030',
 }
+
+// Offentlige steder (parker, pladser, strande osv.) — adskilt fra `locations`
+// fordi de ikke er hoteller/venues og har andre relevante felter.
+export interface PublicLocation {
+  id: string
+  name: string
+  address?: string | null
+  postal_code?: string | null
+  city?: string | null
+  region?: string | null
+  lat?: number | null
+  lon?: number | null
+
+  place_type?: string | null
+  capacity_estimate?: number | null
+
+  has_toilet?: boolean
+  has_parking?: boolean
+  has_power?: boolean
+  has_water?: boolean
+  has_shelter?: boolean
+
+  access_notes?: string | null
+  permission_required?: boolean
+  permission_contact?: string | null
+  permission_notes?: string | null
+
+  best_for?: string[] | null // activity ids fra ACTIVITIES (A1..A13)
+  notes?: string | null
+
+  hidden?: boolean
+  created_at?: string
+  updated_at?: string
+}

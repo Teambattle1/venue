@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { STATUS_COLORS } from '../lib/types'
 import type { Location } from '../lib/types'
@@ -97,6 +97,25 @@ export default function VenueList() {
         <span style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--muted)', fontSize: 14, marginLeft: 'auto' }}>
           {filtered.length} / {locations.length} venues
         </span>
+
+        {/* LOCATION — offentlige steder med MyMap */}
+        <Link
+          to="/locations"
+          title="Offentlige steder (parker, pladser, strande) på MyMap"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 'var(--r)',
+            border: '1px solid var(--border)', background: 'var(--surface)',
+            color: 'var(--text)', textDecoration: 'none',
+            fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff6600" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          LOCATION
+        </Link>
 
         {/* QR generator */}
         <a
